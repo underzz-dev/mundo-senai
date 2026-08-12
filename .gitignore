@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# SQLite / dados locais
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Reconhecimento facial / biometria
+*.yml
+*.yaml
+*.npy
+*.npz
+faces/
+rostos/
+biometria/
+dataset/
+datasets/
+
+# Exportações e dados gerados
+exports/
+*.csv
+
+# Arquivos locais/temporários
+*.bak
+backend_audit.txt
+pessoa.txt
+
+# IDE / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Segredos
+.env
+.env.*
+*.key
+*.pem
+
+# Código legado local
+facepoint.py

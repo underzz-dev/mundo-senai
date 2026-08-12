@@ -1,0 +1,320 @@
+from datetime import datetime
+from numbers import Real
+from math import isfinite
+from pathlib import Path
+from threading import RLock
+from typing import Optional, Union
+
+from config import DB_PATH, EXPORTS_DIR
+from database.database import DatabaseManager
+from repositories.person_repository import PersonRepository
+from repositories.attendance_repository import AttendanceRepository
+from services.attendance_service import AttendanceService
+from services.export_service import ExportService
+from exceptions import ValidationError
+
+
+class FacePointBackend:
+    """
+    Interface pública do backend do FacePoint.
+
+    Reconhecimento facial e interface gráfica devem utilizar
+    esta classe em vez de acessar SQLite ou repositories diretamente.
+    """
+
+    def __init__(
+        self,
+        db_path: Union[str, Path] = DB_PATH,
+        cooldown_seconds: Optional[int] = None,
+    ):
+        self._lock = RLock()
+
+        self.db = DatabaseManager(db_path)
+
+        conn = self.db.get_connection()
+
+        self.person_repo = PersonRepository(conn)
+        self.attendance_repo = AttendanceRepository(conn)
+
+        if cooldown_seconds is None:
+            self.attendance_service = AttendanceService(
+                self.person_repo,
+                self.attendance_repo,
+            )
+        else:
+            self.attendance_service = AttendanceService(
+                self.person_repo,
+                self.attendance_repo,
+                cooldown_seconds=cooldown_seconds,
+            )
+
+        self.export_service = ExportService()
+
+    @staticmethod
+    def _validar_data(
+        data: str
+    ) -> str:
+        """
+        Valida datas no formato YYYY-MM-DD.
+        """
+
+        if not isinstance(data, str):
+            raise ValidationError(
+                "A data deve estar no formato YYYY-MM-DD."
+            )
+
+        data = data.strip()
+
+        try:
+            parsed = datetime.strptime(
+                data,
+                "%Y-%m-%d"
+            )
+        except ValueError as exc:
+            raise ValidationError(
+                "A data deve estar no formato YYYY-MM-DD e ser válida."
+            ) from exc
+
+        # Garante exatamente YYYY-MM-DD.
+        if parsed.strftime("%Y-%m-%d") != data:
+            raise ValidationError(
+                "A data deve estar no formato YYYY-MM-DD."
+            )
+
+        return data
+
+    @staticmethod
+    def _validar_limite(
+        limite: int
+    ) -> int:
+        """
+        Valida limites usados em consultas.
+
+        Deve ser um inteiro positivo.
+        """
+
+        if (
+            isinstance(limite, bool)
+            or not isinstance(limite, int)
+            or limite <= 0
+        ):
+            raise ValidationError(
+                "O limite deve ser um inteiro positivo."
+            )
+
+        return limite
+
+    # ======================================================
+    # PESSOAS
+    # ======================================================
+
+    def cadastrar_pessoa(
+        self,
+        nome: str,
+        matricula: Optional[str] = None,
+    ):
+        if not isinstance(nome, str) or not nome.strip():
+            raise ValidationError(
+                "O nome da pessoa é obrigatório."
+            )
+
+        nome = " ".join(
+            nome.strip().split()
+        )
+
+        return self.attendance_service.register_person(
+            name=nome,
+            identifier=matricula,
+        )
+
+    def listar_pessoas(self):
+        return self.attendance_service.list_active_people()
+
+    def desativar_pessoa(
+        self,
+        pessoa_id: int,
+    ) -> bool:
+        return self.attendance_service.disable_person(
+            pessoa_id
+        )
+
+    # ======================================================
+    # PONTO
+    # ======================================================
+
+    def registrar_presenca(
+        self,
+        pessoa_id: int,
+        confianca: float,
+        origem: str = "camera_0",
+        ignorar_cooldown: bool = False,
+    ):
+        if (
+            isinstance(pessoa_id, bool)
+            or not isinstance(pessoa_id, int)
+            or pessoa_id <= 0
+        ):
+            raise ValidationError(
+                "O ID da pessoa deve ser um inteiro positivo."
+            )
+
+        if (
+            isinstance(confianca, bool)
+            or not isinstance(confianca, Real)
+            or not isfinite(float(confianca))
+        ):
+            raise ValidationError(
+                "A confiança deve ser um número real e finito."
+            )
+
+        confianca = float(confianca)
+
+        if not isinstance(origem, str) or not origem.strip():
+            raise ValidationError(
+                "A origem do registro deve ser um texto não vazio."
+            )
+
+        origem = origem.strip()
+
+        with self._lock:
+            return self.attendance_service.register_attendance(
+                person_id=pessoa_id,
+                confidence=confianca,
+                origin=origem,
+                override_cooldown=ignorar_cooldown,
+            )
+
+    # ======================================================
+    # HISTÓRICO
+    # ======================================================
+
+    def listar_historico(
+        self,
+        limite: int = 50,
+    ):
+        limite = self._validar_limite(
+            limite
+        )
+
+        return self.attendance_repo.list_recent(
+            limit=limite
+        )
+
+    def historico_pessoa(
+        self,
+        pessoa_id: int,
+        limite: int = 50,
+    ):
+        limite = self._validar_limite(
+            limite
+        )
+
+        return self.attendance_repo.list_by_person(
+            pessoa_id,
+            limit=limite,
+        )
+
+    def historico_data(
+        self,
+        data: str,
+        limite: int = 200,
+    ):
+        data = self._validar_data(
+            data
+        )
+
+        limite = self._validar_limite(
+            limite
+        )
+
+        return self.attendance_repo.list_by_date(
+            data,
+            limit=limite,
+        )
+
+    def historico_periodo(
+        self,
+        inicio: str,
+        fim: str,
+        limite: int = 500,
+    ):
+        inicio = self._validar_data(
+            inicio
+        )
+
+        fim = self._validar_data(
+            fim
+        )
+
+        if inicio > fim:
+            raise ValidationError(
+                "A data de início não pode ser posterior à data de fim."
+            )
+
+        limite = self._validar_limite(
+            limite
+        )
+
+        return self.attendance_repo.list_by_period(
+            inicio,
+            fim,
+            limit=limite,
+        )
+
+    # ======================================================
+    # EXPORTAÇÃO
+    # ======================================================
+
+    def exportar_historico(
+        self,
+        caminho: Optional[Union[str, Path]] = None,
+        limite: int = 10000,
+    ) -> Path:
+
+        limite = self._validar_limite(
+            limite
+        )
+
+        registros = self.attendance_repo.list_recent(
+            limit=limite
+        )
+
+        if caminho is None:
+            caminho = (
+                EXPORTS_DIR
+                /
+                "historico_facepoint.csv"
+            )
+
+        return self.export_service.export_records(
+            registros,
+            caminho,
+        )
+
+    # ======================================================
+    # MÉTRICAS
+    # ======================================================
+
+    def metricas(self):
+        return (
+            self.attendance_service
+            .get_dashboard_metrics()
+        )
+
+    # ======================================================
+    # ENCERRAMENTO
+    # ======================================================
+
+    def fechar(self):
+        self.db.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(
+        self,
+        exc_type,
+        exc_value,
+        traceback,
+    ):
+        self.fechar()
