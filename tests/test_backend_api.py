@@ -489,3 +489,85 @@ def test_registrar_presenca_usa_distancia_na_api_publica(
     assert resultado.distance == 42.5
 
     backend.fechar()
+
+
+def test_obter_pessoa_existente(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "obter_existente.db")
+    cadastrada = backend.cadastrar_pessoa(nome="Carlos Silva", matricula="MAT777")
+
+    encontrada = backend.obter_pessoa(cadastrada.id)
+
+    assert encontrada is not None
+    assert encontrada.id == cadastrada.id
+    assert encontrada.name == "Carlos Silva"
+    assert encontrada.identifier == "MAT777"
+
+    backend.fechar()
+
+
+def test_obter_pessoa_inexistente(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "obter_inexistente.db")
+
+    encontrada = backend.obter_pessoa(999)
+
+    assert encontrada is None
+
+    backend.fechar()
+
+
+@pytest.mark.parametrize(
+    "id_invalido",
+    [0, -1, -50, "1", 1.5, True, False, None],
+)
+def test_obter_pessoa_id_invalido(tmp_path, id_invalido):
+    from exceptions import ValidationError
+
+    backend = FacePointBackend(db_path=tmp_path / "obter_invalido.db")
+
+    with pytest.raises(ValidationError, match="ID da pessoa"):
+        backend.obter_pessoa(id_invalido)
+
+    backend.fechar()
+
+
+def test_listar_pessoas_somente_ativas_e_incluindo_inativas(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "listar_inativas.db")
+
+    p1 = backend.cadastrar_pessoa(nome="Ana", matricula="MAT001")
+    p2 = backend.cadastrar_pessoa(nome="Bruno", matricula="MAT002")
+
+    backend.desativar_pessoa(p2.id)
+
+    # Teste 1: listar somente ativas (padrão / incluir_inativas=False)
+    ativas_padrao = backend.listar_pessoas()
+    ativas_explicit = backend.listar_pessoas(incluir_inativas=False)
+
+    assert len(ativas_padrao) == 1
+    assert ativas_padrao[0].id == p1.id
+    assert len(ativas_explicit) == 1
+    assert ativas_explicit[0].id == p1.id
+
+    # Teste 2: listar incluindo inativas (incluir_inativas=True)
+    todas = backend.listar_pessoas(incluir_inativas=True)
+
+    assert len(todas) == 2
+    ids = [p.id for p in todas]
+    assert p1.id in ids
+    assert p2.id in ids
+
+    backend.fechar()
+
+
+@pytest.mark.parametrize(
+    "valor_invalido",
+    ["sim", "nao", 1, 0, None, [], {}],
+)
+def test_listar_pessoas_incluir_inativas_invalido(tmp_path, valor_invalido):
+    from exceptions import ValidationError
+
+    backend = FacePointBackend(db_path=tmp_path / "listar_param_invalido.db")
+
+    with pytest.raises(ValidationError, match="incluir_inativas"):
+        backend.listar_pessoas(incluir_inativas=valor_invalido)
+
+    backend.fechar()

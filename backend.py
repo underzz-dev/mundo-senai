@@ -11,6 +11,7 @@ from repositories.person_repository import PersonRepository
 from repositories.attendance_repository import AttendanceRepository
 from services.attendance_service import AttendanceService
 from services.export_service import ExportService
+from models import Person
 from exceptions import ValidationError
 
 
@@ -156,8 +157,30 @@ class FacePointBackend:
             identifier=matricula,
         )
 
-    def listar_pessoas(self):
-        return self._attendance_service.list_active_people()
+    def obter_pessoa(
+        self,
+        pessoa_id: int,
+    ) -> Optional[Person]:
+        pessoa_id = self._validar_pessoa_id(
+            pessoa_id
+        )
+
+        return self._person_repo.get_by_id(
+            pessoa_id
+        )
+
+    def listar_pessoas(
+        self,
+        incluir_inativas: bool = False,
+    ):
+        if not isinstance(incluir_inativas, bool):
+            raise ValidationError(
+                "O parâmetro incluir_inativas deve ser booleano."
+            )
+
+        return self._person_repo.list_all(
+            active_only=not incluir_inativas
+        )
 
     def desativar_pessoa(
         self,
