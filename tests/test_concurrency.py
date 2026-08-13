@@ -51,7 +51,7 @@ def test_duas_threads_nao_registram_ponto_duplicado(tmp_path):
     )
 
     original_get_last = (
-        backend.attendance_repo.get_last_by_person
+        backend._attendance_repo.get_last_by_person
     )
 
     def get_last_lento(person_id):
@@ -62,7 +62,7 @@ def test_duas_threads_nao_registram_ponto_duplicado(tmp_path):
 
         return ultimo
 
-    backend.attendance_repo.get_last_by_person = (
+    backend._attendance_repo.get_last_by_person = (
         get_last_lento
     )
 

@@ -39,26 +39,26 @@ class FacePointBackend:
 
         self._lock = RLock()
 
-        self.db = DatabaseManager(db_path)
+        self._db = DatabaseManager(db_path)
 
-        conn = self.db.get_connection()
+        conn = self._db.get_connection()
 
-        self.person_repo = PersonRepository(conn)
-        self.attendance_repo = AttendanceRepository(conn)
+        self._person_repo = PersonRepository(conn)
+        self._attendance_repo = AttendanceRepository(conn)
 
         if cooldown_seconds is None:
-            self.attendance_service = AttendanceService(
-                self.person_repo,
-                self.attendance_repo,
+            self._attendance_service = AttendanceService(
+                self._person_repo,
+                self._attendance_repo,
             )
         else:
-            self.attendance_service = AttendanceService(
-                self.person_repo,
-                self.attendance_repo,
+            self._attendance_service = AttendanceService(
+                self._person_repo,
+                self._attendance_repo,
                 cooldown_seconds=cooldown_seconds,
             )
 
-        self.export_service = ExportService()
+        self._export_service = ExportService()
 
     @staticmethod
     def _validar_pessoa_id(
@@ -151,13 +151,13 @@ class FacePointBackend:
             nome.strip().split()
         )
 
-        return self.attendance_service.register_person(
+        return self._attendance_service.register_person(
             name=nome,
             identifier=matricula,
         )
 
     def listar_pessoas(self):
-        return self.attendance_service.list_active_people()
+        return self._attendance_service.list_active_people()
 
     def desativar_pessoa(
         self,
@@ -167,7 +167,7 @@ class FacePointBackend:
             pessoa_id
         )
 
-        return self.attendance_service.disable_person(
+        return self._attendance_service.disable_person(
             pessoa_id
         )
 
@@ -210,7 +210,7 @@ class FacePointBackend:
             )
 
         with self._lock:
-            return self.attendance_service.register_attendance(
+            return self._attendance_service.register_attendance(
                 person_id=pessoa_id,
                 distance=distancia,
                 origin=origem,
@@ -229,7 +229,7 @@ class FacePointBackend:
             limite
         )
 
-        return self.attendance_repo.list_recent(
+        return self._attendance_repo.list_recent(
             limit=limite
         )
 
@@ -246,7 +246,7 @@ class FacePointBackend:
             limite
         )
 
-        return self.attendance_repo.list_by_person(
+        return self._attendance_repo.list_by_person(
             pessoa_id,
             limit=limite,
         )
@@ -264,7 +264,7 @@ class FacePointBackend:
             limite
         )
 
-        return self.attendance_repo.list_by_date(
+        return self._attendance_repo.list_by_date(
             data,
             limit=limite,
         )
@@ -292,7 +292,7 @@ class FacePointBackend:
             limite
         )
 
-        return self.attendance_repo.list_by_period(
+        return self._attendance_repo.list_by_period(
             inicio,
             fim,
             limit=limite,
@@ -312,7 +312,7 @@ class FacePointBackend:
             limite
         )
 
-        registros = self.attendance_repo.list_recent(
+        registros = self._attendance_repo.list_recent(
             limit=limite
         )
 
@@ -323,7 +323,7 @@ class FacePointBackend:
                 "historico_facepoint.csv"
             )
 
-        return self.export_service.export_records(
+        return self._export_service.export_records(
             registros,
             caminho,
         )
@@ -334,7 +334,7 @@ class FacePointBackend:
 
     def metricas(self):
         return (
-            self.attendance_service
+            self._attendance_service
             .get_dashboard_metrics()
         )
 
@@ -343,7 +343,7 @@ class FacePointBackend:
     # ======================================================
 
     def fechar(self):
-        self.db.close()
+        self._db.close()
 
     def __enter__(self):
         return self
