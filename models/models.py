@@ -23,7 +23,7 @@ class AttendanceRecord:
     person_id: int = 0
     registered_at: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
     record_type: str = "entrada"  # "entrada" ou "saida"
-    confidence: float = 0.0
+    distance: float = 0.0
     origin: str = "camera_0"
     person_name: Optional[str] = None
 
@@ -40,7 +40,7 @@ class AttendanceResult:
     person: Optional[Person] = None
     record_type: Optional[str] = None
     timestamp: Optional[str] = None
-    confidence: Optional[float] = None
+    distance: Optional[float] = None
     cooldown_remaining_seconds: Optional[float] = None
 
     def to_dict(self) -> dict:

@@ -75,7 +75,7 @@ def test_duas_threads_nao_registram_ponto_duplicado(tmp_path):
 
         return backend.registrar_presenca(
             pessoa_id=pessoa.id,
-            confianca=42.0,
+            distancia=42.0,
             origem="camera_0",
         )
 

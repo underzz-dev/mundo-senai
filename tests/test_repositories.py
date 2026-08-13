@@ -51,7 +51,7 @@ def test_attendance_repository_operations(conn):
     rec1 = AttendanceRecord(
         person_id=p.id,
         record_type="entrada",
-        confidence=45.2,
+        distance=45.2,
         origin="camera_0",
     )
     saved_rec1 = attendance_repo.create(rec1)
@@ -62,7 +62,7 @@ def test_attendance_repository_operations(conn):
     rec2 = AttendanceRecord(
         person_id=p.id,
         record_type="saida",
-        confidence=48.0,
+        distance=48.0,
         origin="camera_0",
     )
     attendance_repo.create(rec2)

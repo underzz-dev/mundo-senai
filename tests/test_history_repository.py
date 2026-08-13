@@ -41,7 +41,7 @@ def test_historico_por_data_e_periodo(tmp_path):
             person_id=gustavo.id,
             registered_at="2026-08-10T08:00:00",
             record_type="entrada",
-            confidence=40.0,
+            distance=40.0,
             origin="camera_0",
         )
     )
@@ -51,7 +51,7 @@ def test_historico_por_data_e_periodo(tmp_path):
             person_id=gustavo.id,
             registered_at="2026-08-10T17:00:00",
             record_type="saida",
-            confidence=42.0,
+            distance=42.0,
             origin="camera_0",
         )
     )
@@ -61,7 +61,7 @@ def test_historico_por_data_e_periodo(tmp_path):
             person_id=ana.id,
             registered_at="2026-08-11T08:30:00",
             record_type="entrada",
-            confidence=38.0,
+            distance=38.0,
             origin="camera_0",
         )
     )
@@ -71,7 +71,7 @@ def test_historico_por_data_e_periodo(tmp_path):
             person_id=ana.id,
             registered_at="2026-08-12T16:00:00",
             record_type="saida",
-            confidence=39.0,
+            distance=39.0,
             origin="camera_0",
         )
     )

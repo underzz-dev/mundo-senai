@@ -59,7 +59,7 @@ class ExportService:
                     data,
                     hora,
                     record.record_type,
-                    record.confidence,
+                    record.distance,
                     record.origin,
                 ])
 

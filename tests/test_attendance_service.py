@@ -46,7 +46,7 @@ def test_pessoa_inexistente():
 
     result = service.register_attendance(
         person_id=999,
-        confidence=40.0
+        distance=40.0
     )
 
     assert result.success is False
@@ -165,7 +165,7 @@ def test_cooldown_bloqueia_registro():
             timespec="seconds"
         ),
         record_type="entrada",
-        confidence=30.0,
+        distance=30.0,
         origin="camera_0"
     )
 
@@ -201,7 +201,7 @@ def test_override_ignora_cooldown():
             timespec="seconds"
         ),
         record_type="entrada",
-        confidence=30.0,
+        distance=30.0,
         origin="camera_0"
     )
 

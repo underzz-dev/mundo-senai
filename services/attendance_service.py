@@ -37,7 +37,7 @@ class AttendanceService:
     def register_attendance(
         self,
         person_id: int,
-        confidence: float,
+        distance: float,
         origin: str = "camera_0",
         override_cooldown: bool = False,
     ) -> AttendanceResult:
@@ -106,7 +106,7 @@ class AttendanceService:
             person_id=person.id,
             registered_at=now_str,
             record_type=next_type,
-            confidence=float(confidence),
+            distance=float(distance),
             origin=origin,
         )
         saved_record = self.attendance_repo.create(new_record)
@@ -114,7 +114,7 @@ class AttendanceService:
             "Presença (%s) registrada com sucesso para %s (distância: %.1f)",
             next_type,
             person.name,
-            confidence,
+            distance,
         )
 
         # 6. Retornar resultado estruturado
@@ -124,7 +124,7 @@ class AttendanceService:
             person=person,
             record_type=next_type,
             timestamp=now_str,
-            confidence=float(confidence),
+            distance=float(distance),
             message=f"Presença ({next_type}) registrada com sucesso para {person.name}.",
         )
 

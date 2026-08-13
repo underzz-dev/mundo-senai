@@ -178,7 +178,7 @@ class FacePointBackend:
     def registrar_presenca(
         self,
         pessoa_id: int,
-        confianca: float,
+        distancia: float,
         origem: str = "camera_0",
         ignorar_cooldown: bool = False,
     ):
@@ -187,15 +187,15 @@ class FacePointBackend:
         )
 
         if (
-            isinstance(confianca, bool)
-            or not isinstance(confianca, Real)
-            or not isfinite(float(confianca))
+            isinstance(distancia, bool)
+            or not isinstance(distancia, Real)
+            or not isfinite(float(distancia))
         ):
             raise ValidationError(
-                "A confiança deve ser um número real e finito."
+                "A distância deve ser um número real e finito."
             )
 
-        confianca = float(confianca)
+        distancia = float(distancia)
 
         if not isinstance(origem, str) or not origem.strip():
             raise ValidationError(
@@ -212,7 +212,7 @@ class FacePointBackend:
         with self._lock:
             return self.attendance_service.register_attendance(
                 person_id=pessoa_id,
-                confidence=confianca,
+                distance=distancia,
                 origin=origem,
                 override_cooldown=ignorar_cooldown,
             )

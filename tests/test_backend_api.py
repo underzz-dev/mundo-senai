@@ -28,7 +28,7 @@ def test_api_publica_backend(tmp_path):
     # Entrada
     entrada = backend.registrar_presenca(
         pessoa_id=pessoa.id,
-        confianca=42.0,
+        distancia=42.0,
     )
 
     assert entrada.registered is True
@@ -37,7 +37,7 @@ def test_api_publica_backend(tmp_path):
     # Cooldown
     repetido = backend.registrar_presenca(
         pessoa_id=pessoa.id,
-        confianca=43.0,
+        distancia=43.0,
     )
 
     assert repetido.registered is False
@@ -45,7 +45,7 @@ def test_api_publica_backend(tmp_path):
     # Saída
     saida = backend.registrar_presenca(
         pessoa_id=pessoa.id,
-        confianca=41.0,
+        distancia=41.0,
         ignorar_cooldown=True,
     )
 
@@ -158,7 +158,7 @@ def test_nao_permite_pessoa_id_invalido(tmp_path):
     ):
         backend.registrar_presenca(
             pessoa_id=0,
-            confianca=42.0
+            distancia=42.0
         )
 
     backend.fechar()
@@ -175,14 +175,14 @@ def test_nao_permite_pessoa_id_invalido(tmp_path):
         float("-inf"),
     ],
 )
-def test_nao_permite_confianca_invalida(
+def test_nao_permite_distancia_invalida(
     tmp_path,
     valor
 ):
     from exceptions import ValidationError
 
     backend = FacePointBackend(
-        db_path=tmp_path / "confianca_invalida.db"
+        db_path=tmp_path / "distancia_invalida.db"
     )
 
     pessoa = backend.cadastrar_pessoa(
@@ -192,11 +192,11 @@ def test_nao_permite_confianca_invalida(
 
     with pytest.raises(
         ValidationError,
-        match="confiança"
+        match="distância"
     ):
         backend.registrar_presenca(
             pessoa_id=pessoa.id,
-            confianca=valor
+            distancia=valor
         )
 
     backend.fechar()
@@ -233,7 +233,7 @@ def test_nao_permite_origem_invalida(
     ):
         backend.registrar_presenca(
             pessoa_id=pessoa.id,
-            confianca=42.0,
+            distancia=42.0,
             origem=origem
         )
 
@@ -432,7 +432,7 @@ def test_nao_permite_ignorar_cooldown_invalido(
     ):
         backend.registrar_presenca(
             pessoa_id=pessoa.id,
-            confianca=42.0,
+            distancia=42.0,
             ignorar_cooldown=ignorar_cooldown,
         )
 
@@ -465,3 +465,27 @@ def test_nao_permite_cooldown_invalido_no_backend(
         )
 
         backend.fechar()
+
+
+def test_registrar_presenca_usa_distancia_na_api_publica(
+    tmp_path
+):
+    backend = FacePointBackend(
+        db_path=tmp_path / "distancia_api.db"
+    )
+
+    pessoa = backend.cadastrar_pessoa(
+        nome="Gustavo",
+        matricula="MAT001",
+    )
+
+    resultado = backend.registrar_presenca(
+        pessoa_id=pessoa.id,
+        distancia=42.5,
+        origem="camera_0",
+    )
+
+    assert resultado.registered is True
+    assert resultado.distance == 42.5
+
+    backend.fechar()

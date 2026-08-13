@@ -16,7 +16,7 @@ class AttendanceRepository:
             person_id=row["pessoa_id"],
             registered_at=row["registrado_em"],
             record_type=row["tipo"],
-            confidence=float(row["distancia"]),
+            distance=float(row["distancia"]),
             origin=row["origem"],
             person_name=person_name,
         )
@@ -34,7 +34,7 @@ class AttendanceRepository:
                 record.person_id,
                 record.registered_at,
                 record.record_type,
-                record.confidence,
+                record.distance,
                 record.origin,
             ),
         )

@@ -12,7 +12,7 @@ def test_exportacao_csv(tmp_path):
             person_name="Gustavo",
             registered_at="2026-08-12T08:00:00",
             record_type="entrada",
-            confidence=42.5,
+            distance=42.5,
             origin="camera_0",
         ),
 
@@ -21,7 +21,7 @@ def test_exportacao_csv(tmp_path):
             person_name="Gustavo",
             registered_at="2026-08-12T17:00:00",
             record_type="saida",
-            confidence=40.2,
+            distance=40.2,
             origin="camera_0",
         ),
     ]

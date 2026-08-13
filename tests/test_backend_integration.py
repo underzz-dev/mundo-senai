@@ -64,7 +64,7 @@ def test_fluxo_completo_backend_sqlite(tmp_path):
 
     entrada = service.register_attendance(
         person_id=pessoa.id,
-        confidence=42.5,
+        distance=42.5,
         origin="camera_teste",
     )
 
@@ -78,7 +78,7 @@ def test_fluxo_completo_backend_sqlite(tmp_path):
 
     duplicado = service.register_attendance(
         person_id=pessoa.id,
-        confidence=43.0,
+        distance=43.0,
         origin="camera_teste",
     )
 
@@ -104,7 +104,7 @@ def test_fluxo_completo_backend_sqlite(tmp_path):
 
     saida = service.register_attendance(
         person_id=pessoa.id,
-        confidence=44.0,
+        distance=44.0,
         origin="camera_teste",
         override_cooldown=True,
     )
@@ -132,7 +132,7 @@ def test_fluxo_completo_backend_sqlite(tmp_path):
 
     bloqueado = service.register_attendance(
         person_id=pessoa.id,
-        confidence=40.0,
+        distance=40.0,
         override_cooldown=True,
     )
 
