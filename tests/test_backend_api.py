@@ -398,3 +398,42 @@ def test_nao_permite_id_invalido_no_historico_pessoa(
         )
 
     backend.fechar()
+
+
+@pytest.mark.parametrize(
+    "ignorar_cooldown",
+    [
+        None,
+        1,
+        0,
+        "sim",
+        [],
+        {},
+    ],
+)
+def test_nao_permite_ignorar_cooldown_invalido(
+    tmp_path,
+    ignorar_cooldown
+):
+    from exceptions import ValidationError
+
+    backend = FacePointBackend(
+        db_path=tmp_path / "cooldown_invalido.db"
+    )
+
+    pessoa = backend.cadastrar_pessoa(
+        nome="Gustavo",
+        matricula="MAT001",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="cooldown"
+    ):
+        backend.registrar_presenca(
+            pessoa_id=pessoa.id,
+            confianca=42.0,
+            ignorar_cooldown=ignorar_cooldown,
+        )
+
+    backend.fechar()

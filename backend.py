@@ -51,6 +51,25 @@ class FacePointBackend:
         self.export_service = ExportService()
 
     @staticmethod
+    def _validar_pessoa_id(
+        pessoa_id: int
+    ) -> int:
+        """
+        Valida IDs de pessoas recebidos pela API pública.
+        """
+
+        if (
+            isinstance(pessoa_id, bool)
+            or not isinstance(pessoa_id, int)
+            or pessoa_id <= 0
+        ):
+            raise ValidationError(
+                "O ID da pessoa deve ser um inteiro positivo."
+            )
+
+        return pessoa_id
+
+    @staticmethod
     def _validar_data(
         data: str
     ) -> str:
@@ -134,6 +153,10 @@ class FacePointBackend:
         self,
         pessoa_id: int,
     ) -> bool:
+        pessoa_id = self._validar_pessoa_id(
+            pessoa_id
+        )
+
         return self.attendance_service.disable_person(
             pessoa_id
         )
@@ -149,14 +172,9 @@ class FacePointBackend:
         origem: str = "camera_0",
         ignorar_cooldown: bool = False,
     ):
-        if (
-            isinstance(pessoa_id, bool)
-            or not isinstance(pessoa_id, int)
-            or pessoa_id <= 0
-        ):
-            raise ValidationError(
-                "O ID da pessoa deve ser um inteiro positivo."
-            )
+        pessoa_id = self._validar_pessoa_id(
+            pessoa_id
+        )
 
         if (
             isinstance(confianca, bool)
@@ -175,6 +193,11 @@ class FacePointBackend:
             )
 
         origem = origem.strip()
+
+        if not isinstance(ignorar_cooldown, bool):
+            raise ValidationError(
+                "O parâmetro ignorar_cooldown deve ser booleano."
+            )
 
         with self._lock:
             return self.attendance_service.register_attendance(
@@ -205,6 +228,10 @@ class FacePointBackend:
         pessoa_id: int,
         limite: int = 50,
     ):
+        pessoa_id = self._validar_pessoa_id(
+            pessoa_id
+        )
+
         limite = self._validar_limite(
             limite
         )
