@@ -437,3 +437,31 @@ def test_nao_permite_ignorar_cooldown_invalido(
         )
 
     backend.fechar()
+
+
+@pytest.mark.parametrize(
+    "cooldown_seconds",
+    [
+        0,
+        -1,
+        "60",
+        10.5,
+        True,
+    ],
+)
+def test_nao_permite_cooldown_invalido_no_backend(
+    tmp_path,
+    cooldown_seconds
+):
+    from exceptions import ValidationError
+
+    with pytest.raises(
+        ValidationError,
+        match="cooldown"
+    ):
+        backend = FacePointBackend(
+            db_path=tmp_path / "cooldown_config.db",
+            cooldown_seconds=cooldown_seconds,
+        )
+
+        backend.fechar()

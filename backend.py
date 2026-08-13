@@ -27,6 +27,16 @@ class FacePointBackend:
         db_path: Union[str, Path] = DB_PATH,
         cooldown_seconds: Optional[int] = None,
     ):
+        if cooldown_seconds is not None:
+            if (
+                isinstance(cooldown_seconds, bool)
+                or not isinstance(cooldown_seconds, int)
+                or cooldown_seconds <= 0
+            ):
+                raise ValidationError(
+                    "O cooldown deve ser um inteiro positivo."
+                )
+
         self._lock = RLock()
 
         self.db = DatabaseManager(db_path)
