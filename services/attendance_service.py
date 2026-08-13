@@ -143,6 +143,12 @@ class AttendanceService:
             logger.info("Pessoa id=%s desativada com sucesso.", person_id)
         return success
 
+    def enable_person(self, person_id: int) -> bool:
+        success = self.person_repo.enable(person_id)
+        if success:
+            logger.info("Pessoa id=%s reativada com sucesso.", person_id)
+        return success
+
     def list_active_people(self) -> List[Person]:
         return self.person_repo.list_all(active_only=True)
 

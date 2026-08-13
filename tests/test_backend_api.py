@@ -571,3 +571,74 @@ def test_listar_pessoas_incluir_inativas_invalido(tmp_path, valor_invalido):
         backend.listar_pessoas(incluir_inativas=valor_invalido)
 
     backend.fechar()
+
+
+def test_reativar_pessoa_fluxo_completo(tmp_path):
+    import time
+
+    backend = FacePointBackend(db_path=tmp_path / "reativar_fluxo.db")
+
+    # 1. Cadastrar pessoa
+    p = backend.cadastrar_pessoa(nome="Daniela", matricula="MAT900")
+    id_pessoa = p.id
+
+    # 2. Desativar
+    sucesso_desativar = backend.desativar_pessoa(id_pessoa)
+    assert sucesso_desativar is True
+
+    # 3. Confirmar que saiu de listar_pessoas()
+    ativas = backend.listar_pessoas()
+    assert not any(item.id == id_pessoa for item in ativas)
+
+    # 4. Confirmar que aparece em listar_pessoas(incluir_inativas=True)
+    todas = backend.listar_pessoas(incluir_inativas=True)
+    inativa = next((item for item in todas if item.id == id_pessoa), None)
+    assert inativa is not None
+    assert inativa.active is False
+
+    pessoa_desativada = backend.obter_pessoa(id_pessoa)
+    assert pessoa_desativada is not None
+    updated_at_desativada = pessoa_desativada.updated_at
+
+    time.sleep(1.0)
+
+    # 5. Reativar
+    sucesso_reativar = backend.reativar_pessoa(id_pessoa)
+    assert sucesso_reativar is True
+
+    # 6. Confirmar que voltou para listar_pessoas()
+    ativas_pos = backend.listar_pessoas()
+    reativada = next((item for item in ativas_pos if item.id == id_pessoa), None)
+    assert reativada is not None
+    assert reativada.active is True
+
+    # 7. Confirmar que atualizado_em muda ao reativar
+    pessoa_reativada = backend.obter_pessoa(id_pessoa)
+    assert pessoa_reativada is not None
+    assert pessoa_reativada.updated_at != updated_at_desativada
+
+    backend.fechar()
+
+
+def test_reativar_pessoa_inexistente(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "reativar_inexistente.db")
+
+    resultado = backend.reativar_pessoa(9999)
+    assert resultado is False
+
+    backend.fechar()
+
+
+@pytest.mark.parametrize(
+    "id_invalido",
+    [0, -1, -100, "1", 2.5, True, False, None],
+)
+def test_reativar_pessoa_id_invalido(tmp_path, id_invalido):
+    from exceptions import ValidationError
+
+    backend = FacePointBackend(db_path=tmp_path / "reativar_invalido.db")
+
+    with pytest.raises(ValidationError, match="ID da pessoa"):
+        backend.reativar_pessoa(id_invalido)
+
+    backend.fechar()

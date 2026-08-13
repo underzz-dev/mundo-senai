@@ -194,6 +194,18 @@ class FacePointBackend:
             pessoa_id
         )
 
+    def reativar_pessoa(
+        self,
+        pessoa_id: int,
+    ) -> bool:
+        pessoa_id = self._validar_pessoa_id(
+            pessoa_id
+        )
+
+        return self._attendance_service.enable_person(
+            pessoa_id
+        )
+
     # ======================================================
     # PONTO
     # ======================================================

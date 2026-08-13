@@ -210,6 +210,15 @@ class PersonRepository:
         self.conn.commit()
         return cursor.rowcount > 0
 
+    def enable(self, person_id: int) -> bool:
+        now = datetime.now().isoformat(timespec="seconds")
+        cursor = self.conn.execute(
+            "UPDATE pessoas SET ativo = 1, atualizado_em = ? WHERE id = ?;",
+            (now, person_id),
+        )
+        self.conn.commit()
+        return cursor.rowcount > 0
+
     def count_active(self) -> int:
         row = self.conn.execute(
             "SELECT COUNT(*) FROM pessoas WHERE ativo = 1;"
