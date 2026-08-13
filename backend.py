@@ -157,6 +157,31 @@ class FacePointBackend:
             identifier=matricula,
         )
 
+    def atualizar_pessoa(
+        self,
+        pessoa_id: int,
+        nome: str,
+        matricula: Optional[str] = None,
+    ) -> bool:
+        pessoa_id = self._validar_pessoa_id(
+            pessoa_id
+        )
+
+        if not isinstance(nome, str) or not nome.strip():
+            raise ValidationError(
+                "O nome da pessoa é obrigatório."
+            )
+
+        nome = " ".join(
+            nome.strip().split()
+        )
+
+        return self._attendance_service.update_person(
+            person_id=pessoa_id,
+            name=nome,
+            identifier=matricula,
+        )
+
     def obter_pessoa(
         self,
         pessoa_id: int,

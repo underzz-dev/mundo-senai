@@ -642,3 +642,185 @@ def test_reativar_pessoa_id_invalido(tmp_path, id_invalido):
         backend.reativar_pessoa(id_invalido)
 
     backend.fechar()
+
+
+def test_atualizar_somente_nome(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "atualizar_nome.db")
+    p = backend.cadastrar_pessoa(nome="Carlos Silva", matricula="MAT100")
+
+    sucesso = backend.atualizar_pessoa(pessoa_id=p.id, nome="Carlos Eduardo Silva")
+    assert sucesso is True
+
+    atualizada = backend.obter_pessoa(p.id)
+    assert atualizada.name == "Carlos Eduardo Silva"
+    assert atualizada.identifier == "MAT100"
+
+    backend.fechar()
+
+
+def test_atualizar_nome_e_matricula_e_normalizacao(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "atualizar_nome_matricula.db")
+    p = backend.cadastrar_pessoa(nome="Ana", matricula="MAT001")
+
+    sucesso = backend.atualizar_pessoa(
+        pessoa_id=p.id,
+        nome="  Ana   Beatriz  ",
+        matricula="  mat002  ",
+    )
+    assert sucesso is True
+
+    atualizada = backend.obter_pessoa(p.id)
+    assert atualizada.name == "Ana Beatriz"
+    assert atualizada.identifier == "MAT002"
+
+    backend.fechar()
+
+
+def test_atualizar_manter_propria_matricula(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "manter_propria_matricula.db")
+    p = backend.cadastrar_pessoa(nome="Gustavo", matricula="MAT001")
+
+    # Atualizar nome mantendo exatamente a mesma matrícula ou alterando case ("mat001")
+    sucesso = backend.atualizar_pessoa(
+        pessoa_id=p.id,
+        nome="Gustavo Franco",
+        matricula="mat001",
+    )
+    assert sucesso is True
+
+    atualizada = backend.obter_pessoa(p.id)
+    assert atualizada.name == "Gustavo Franco"
+    assert atualizada.identifier == "MAT001"
+
+    backend.fechar()
+
+
+def test_atualizar_matricula_duplicada_outra_pessoa(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "matricula_duplicada.db")
+    p1 = backend.cadastrar_pessoa(nome="Pessoa Um", matricula="MAT001")
+    p2 = backend.cadastrar_pessoa(nome="Pessoa Dois", matricula="MAT002")
+
+    # Tentar atualizar p2 para usar a matrícula de p1 (case-insensitive)
+    with pytest.raises(DuplicateIdentifierError, match="já está cadastrada"):
+        backend.atualizar_pessoa(
+            pessoa_id=p2.id,
+            nome="Pessoa Dois Alterada",
+            matricula="mat001",
+        )
+
+    # Confirmar que os dados de p2 não foram alterados
+    p2_banco = backend.obter_pessoa(p2.id)
+    assert p2_banco.name == "Pessoa Dois"
+    assert p2_banco.identifier == "MAT002"
+
+    backend.fechar()
+
+
+def test_atualizar_pessoa_inexistente(tmp_path):
+    backend = FacePointBackend(db_path=tmp_path / "pessoa_inexistente.db")
+
+    resultado = backend.atualizar_pessoa(
+        pessoa_id=9999,
+        nome="Pessoa Inexistente",
+        matricula="MAT999",
+    )
+    assert resultado is False
+
+    backend.fechar()
+
+
+@pytest.mark.parametrize(
+    "id_invalido",
+    [0, -1, -50, "1", 2.5, True, False, None],
+)
+def test_atualizar_pessoa_id_invalido(tmp_path, id_invalido):
+    from exceptions import ValidationError
+
+    backend = FacePointBackend(db_path=tmp_path / "atualizar_id_invalido.db")
+
+    with pytest.raises(ValidationError, match="ID da pessoa"):
+        backend.atualizar_pessoa(
+            pessoa_id=id_invalido,
+            nome="Nome Valido",
+        )
+
+    backend.fechar()
+
+
+@pytest.mark.parametrize(
+    "nome_invalido",
+    ["", "   ", None, 123, True, False, []],
+)
+def test_atualizar_pessoa_nome_vazio(tmp_path, nome_invalido):
+    from exceptions import ValidationError
+
+    backend = FacePointBackend(db_path=tmp_path / "atualizar_nome_vazio.db")
+    p = backend.cadastrar_pessoa(nome="Pedro", matricula="MAT500")
+
+    with pytest.raises(ValidationError, match="nome da pessoa é obrigatório"):
+        backend.atualizar_pessoa(
+            pessoa_id=p.id,
+            nome=nome_invalido,
+        )
+
+    backend.fechar()
+
+
+def test_atualizar_pessoa_inativa_mantem_inativa(tmp_path):
+    import time
+
+    backend = FacePointBackend(db_path=tmp_path / "atualizar_inativa.db")
+    p = backend.cadastrar_pessoa(nome="Inativo", matricula="MAT100")
+
+    backend.desativar_pessoa(p.id)
+
+    inativa_antes = backend.obter_pessoa(p.id)
+    assert inativa_antes.active is False
+    created_at_original = inativa_antes.created_at
+    updated_at_antes = inativa_antes.updated_at
+
+    time.sleep(1.0)
+
+    # Atualizar dados da pessoa inativa
+    sucesso = backend.atualizar_pessoa(
+        pessoa_id=p.id,
+        nome="Inativo Nome Alterado",
+        matricula="MAT100_ALT",
+    )
+    assert sucesso is True
+
+    # Verificar que a pessoa continua inativa
+    inativa_depois = backend.obter_pessoa(p.id)
+    assert inativa_depois.active is False
+    assert inativa_depois.name == "Inativo Nome Alterado"
+    assert inativa_depois.identifier == "MAT100_ALT"
+
+    # Verificar timestamps: criado_em não muda, atualizado_em muda
+    assert inativa_depois.created_at == created_at_original
+    assert inativa_depois.updated_at != updated_at_antes
+
+    # Garantir que NÃO voltou para a lista de ativas
+    ativas = backend.listar_pessoas(incluir_inativas=False)
+    assert not any(item.id == p.id for item in ativas)
+
+    backend.fechar()
+
+
+def test_atualizar_pessoa_persistencia_sqlite(tmp_path):
+    db_file = tmp_path / "persistencia.db"
+
+    # 1. Abre backend, cadastra e atualiza
+    backend1 = FacePointBackend(db_path=db_file)
+    p = backend1.cadastrar_pessoa(nome="Original", matricula="MAT001")
+    backend1.atualizar_pessoa(pessoa_id=p.id, nome="Persistido", matricula="MAT001_PER")
+    backend1.fechar()
+
+    # 2. Reabre o SQLite em nova instância do backend
+    backend2 = FacePointBackend(db_path=db_file)
+    reaberta = backend2.obter_pessoa(p.id)
+
+    assert reaberta is not None
+    assert reaberta.name == "Persistido"
+    assert reaberta.identifier == "MAT001_PER"
+
+    backend2.fechar()

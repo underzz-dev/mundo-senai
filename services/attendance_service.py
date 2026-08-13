@@ -25,7 +25,7 @@ class AttendanceService:
 
     def _determine_next_record_type(self, last_record: Optional[AttendanceRecord]) -> str:
         """Determina se o próximo registro deve ser 'entrada' ou 'saida'.
-        
+
         Pode ser estendido/substituído no futuro por regras baseadas em horários.
         """
         if not last_record or not last_record.record_type:
@@ -42,7 +42,7 @@ class AttendanceService:
         override_cooldown: bool = False,
     ) -> AttendanceResult:
         """Executa a verificação e registro de presença para uma pessoa.
-        
+
         Fluxo:
         1. Verifica se a pessoa existe
         2. Verifica se a pessoa está ativa
@@ -147,6 +147,27 @@ class AttendanceService:
         success = self.person_repo.enable(person_id)
         if success:
             logger.info("Pessoa id=%s reativada com sucesso.", person_id)
+        return success
+
+    def update_person(
+        self,
+        person_id: int,
+        name: str,
+        identifier: Optional[str] = None,
+    ) -> bool:
+        person = self.person_repo.get_by_id(person_id)
+        if not person:
+            return False
+
+        person.name = name
+
+        if identifier is not None:
+            person.identifier = identifier
+
+        success = self.person_repo.update(person)
+        if success:
+            logger.info("Pessoa id=%s atualizada com sucesso.", person_id)
+
         return success
 
     def list_active_people(self) -> List[Person]:
